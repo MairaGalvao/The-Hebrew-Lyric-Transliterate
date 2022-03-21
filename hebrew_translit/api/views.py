@@ -11,12 +11,30 @@ from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
 def main(request):
-    print('Def function in python is being called <<<<<<<<<<<<<<<<<<<<<<<<<')
+    text_with_punctuation = add_punctuation()
+    english_string = convert_to_phonetic(text_with_punctuation)
+    return JsonResponse({text_with_punctuation, english_string})
+
+
+def add_punctuation(request):
     listLetters = []
     response = requests.post(
+        'https://nakdan-4-0.loadbalancer.dicta.org.il/api', json={
+            "task": "nakdan",
+            "data": request.body,
+            "genre": "modern"
+        },
+    )
+   # print(request.body, '<<<<<<<<<<<<<<<<<<<<<<')
 
+    response.status_code
+    data = response.json()
+    return HttpResponse(data)
+
+
+def convert_to_phonetic(request):
+    response = requests.post(
         'https://alittlehebrew.com/transliterate/get.php?token=a83f12f84752f7d2099b447daa1746d490379bc983440ad6b08b38c9114b147f&style=210_spanish&syllable=auto&accent=auto&hebrew_text=שָׁלוֹם?',
-
         json={
             "data": request.body,
         },
@@ -32,16 +50,8 @@ def main(request):
             "Accept": 'application/json, text/javascript, */*; q=0.01',
             "Accept-Encoding": "gzip, deflate, br",
             "Accept-Language": "en-IE,en-US;q=0.9,en;q=0.8,he;q=0.7"
-
-
-
-
-
         },
     )
-    # print(request.body, '<<<<<<<<<<<<<<<<<<<<<<')
-
     response.status_code
     data = response.json()
-    print(data)
-    return JsonResponse(data)
+    return(data)
