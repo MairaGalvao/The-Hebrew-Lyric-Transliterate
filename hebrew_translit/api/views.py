@@ -11,9 +11,20 @@ from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
 def main(request):
-    text_with_punctuation = add_punctuation()
-    english_string = convert_to_phonetic(text_with_punctuation)
-    return JsonResponse({text_with_punctuation, english_string})
+    text_with_punctuation = add_punctuation(request)
+    # print(text_with_punctuation)
+
+    english_string = convert_to_phonetic(request)
+    print(english_string, 'my english string')
+
+    # print(text_with_punctuation)
+    # english_string = convert_to_phonetic(text_with_punctuation)
+    # print(english_string, '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+    # getting nothing on the english string
+
+    return JsonResponse(english_string, content_type="application/json")
+    # It only works with HttpResponse and no SAFE=FALSE. If I do json response without safe false it gives me an error
+    # and json with safe false the frontend doesnt display in the screen.
 
 
 def add_punctuation(request):
@@ -29,7 +40,10 @@ def add_punctuation(request):
 
     response.status_code
     data = response.json()
-    return HttpResponse(data)
+
+    first_option = data[0]['options'][0]
+    return ({"withPunctuation": first_option})
+    # remove the single quotes from each
 
 
 def convert_to_phonetic(request):
@@ -54,4 +68,5 @@ def convert_to_phonetic(request):
     )
     response.status_code
     data = response.json()
-    return(data)
+    first_option = data['message']
+    return ({"withPhonetic": first_option})
