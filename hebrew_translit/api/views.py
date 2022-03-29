@@ -12,23 +12,15 @@ from django.views.decorators.csrf import csrf_exempt
 @csrf_exempt
 def main(request):
     text_with_punctuation = add_punctuation(request)
-    # print(text_with_punctuation)
-
-    english_string = convert_to_phonetic(request)
-    print(english_string, 'my english string')
-
-    # print(text_with_punctuation)
-    # english_string = convert_to_phonetic(text_with_punctuation)
-    # print(english_string, '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-    # getting nothing on the english string
-
-    return JsonResponse(english_string, content_type="application/json")
-    # It only works with HttpResponse and no SAFE=FALSE. If I do json response without safe false it gives me an error
-    # and json with safe false the frontend doesnt display in the screen.
+    text_phonetic = convert_to_phonetic(request)
+    lyric_link = scrape_lyric()
+    return JsonResponse({'text_with_punctuation': text_with_punctuation,
+                         'text_phonetic': text_phonetic,
+                         'lyric_link': lyric_link},
+                        content_type="application/json", safe=False)
 
 
 def add_punctuation(request):
-    listLetters = []
     response = requests.post(
         'https://nakdan-4-0.loadbalancer.dicta.org.il/api', json={
             "task": "nakdan",
@@ -36,14 +28,10 @@ def add_punctuation(request):
             "genre": "modern"
         },
     )
-   # print(request.body, '<<<<<<<<<<<<<<<<<<<<<<')
-
     response.status_code
-    data = response.json()
-
-    first_option = data[0]['options'][0]
-    return ({"withPunctuation": first_option})
-    # remove the single quotes from each
+    dataPunctuation = response.json()
+    first_option_punctuation = dataPunctuation[0]['options'][0]
+    return (first_option_punctuation)
 
 
 def convert_to_phonetic(request):
@@ -67,6 +55,17 @@ def convert_to_phonetic(request):
         },
     )
     response.status_code
-    data = response.json()
-    first_option = data['message']
-    return ({"withPhonetic": first_option})
+    dataPhonetic = response.json()
+    first_option_phonetic = dataPhonetic['message']
+    return (first_option_phonetic)
+
+
+def scrape_lyric():
+    lyric = 'כולם על הגל'
+    source = requests.get(
+        "https://shironet.mako.co.il/search?q=%D7%9B%D7%95%D7%9C%D7%9D%2B%D7%A2%D7%9C%2B%D7%94%D7%92%D7%9C")
+    soup = BeautifulSoup(source.text, features="lxml")
+    for sessionHebrew in soup.find_all('div', class_='search_results'):
+        for table in sessionHebrew.find_all('a', class_='search_link_name_big'):
+            link = table.get('href')
+            return (link)
