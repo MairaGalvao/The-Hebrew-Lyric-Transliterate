@@ -5,6 +5,8 @@ import requests
 import csv
 import json
 from urllib.parse import urlencode
+import urllib.parse
+
 from urllib.request import Request, urlopen
 from django.views.decorators.csrf import csrf_exempt
 
@@ -12,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 @csrf_exempt
 def main(request):
     text_with_punctuation = add_punctuation(request)
-    text_phonetic = convert_to_phonetic(request)
+    text_phonetic = convert_to_phonetic(text_with_punctuation)
     lyric_link = scrape_lyric()
     return JsonResponse({'text_with_punctuation': text_with_punctuation,
                          'text_phonetic': text_phonetic,
@@ -23,26 +25,52 @@ def main(request):
 def add_punctuation(request):
     response = requests.post(
         'https://nakdan-4-0.loadbalancer.dicta.org.il/api', json={
-            "task": "nakdan",
-            "data": request.body,
-            "genre": "modern"
+            'data': request.body,
+            'genre': "modern",
+            'task': "nakdan",
         },
     )
     response.status_code
     dataPunctuation = response.json()
-    first_option_punctuation = dataPunctuation[0]['options'][0]
-    return (first_option_punctuation)
+    returned_string = ""
+
+    for word in dataPunctuation:
+        if (word['options']):
+            eachWord = word['options'][0]
+            returned_string = returned_string + ' ' + eachWord
+    return (returned_string)
 
 
-def convert_to_phonetic(request):
+def convert_to_phonetic(text_with_punctuation):
+    # encode text to utf-8
+    # text_with_punctuation.urllib.parse.quote(
+    #     text_with_punctuation)
+    # print(text_with_punctuation, 'after encoding')
+    print("text_with_punctuation", text_with_punctuation)
+    text_with_punctuation_encoded = urllib.parse.quote(text_with_punctuation)
+    print("text_with_punctuation_encoded", text_with_punctuation_encoded)
+
+    print(urllib.parse.unquote('%D7%97%D6%B2%D7%AA%D7%95%D6%BC%D7%A0%D6%B8%D7%94'))
+
+    # assert text_with_punctuation_encoded == '%D7%97%D6%B2%D7%AA%D7%95%D6%BC%D7%A0%D6%B8%D7%94'
+
+    post_prefix = 'https://alittlehebrew.com/transliterate/get.php?token=b68d80fe5b414070ec66441540697eac1b1bb3a34dcaaf1c552b6a33c023e093&style=000_simple_sefardi&syllable=auto&accent=auto&hebrew_text='
     response = requests.post(
-        'https://alittlehebrew.com/transliterate/get.php?token=a83f12f84752f7d2099b447daa1746d490379bc983440ad6b08b38c9114b147f&style=210_spanish&syllable=auto&accent=auto&hebrew_text=שָׁלוֹם?',
-        json={
-            "data": request.body,
-        },
+
+        f'{post_prefix}{text_with_punctuation_encoded}',
+        # f'{post_prefix}%D7%97%D6%B2%D7%AA%D7%95%D6%BC%D7%A0%D6%B8%D7%94',
+
+        # json={
+        #     'data': text_with_punctuation,
+        #     'token': 'b68d80fe5b414070ec66441540697eac1b1bb3a34dcaaf1c552b6a33c023e093',
+        #     'style': '000_simple_sefardi',
+        #     'syllable': 'auto',
+        #     'accent': 'auto',
+        # },
         headers={
             "Content-Type": "application/json",
-            "Cookie": 'PHPSESSID=c5c738286764224ca1cf8aacc49819be',
+            'Accept': 'keep-alive',
+            "Cookie": 'PHPSESSID=3203226df62e4868d7704ea3a24771a5',
             "Connection": 'keep-alive',
             "Referer": 'https://alittlehebrew.com/transliterate/',
             "User-Agent": 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36',
@@ -51,12 +79,20 @@ def convert_to_phonetic(request):
             "sec-fetch-mode": 'cors',
             "Accept": 'application/json, text/javascript, */*; q=0.01',
             "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "en-IE,en-US;q=0.9,en;q=0.8,he;q=0.7"
+            "Accept-Language": "en-IE,en-US;q=0.9,en;q=0.8,he;q=0.7",
+            'sec-fetch-dest': 'empty',
+            'Referer': 'https://alittlehebrew.com/transliterate/',
+            'Connection': 'keep-alive',
+            'Accept': '*/*'
+
         },
+
     )
     response.status_code
     dataPhonetic = response.json()
-    first_option_phonetic = dataPhonetic['message']
+    first_option_phonetic = dataPhonetic['result']
+    # todo FIX when there is an error on the call the object change and the value I need is from 'message', not result
+    print("first_option_phonetic", first_option_phonetic)
     return (first_option_phonetic)
 
 
